@@ -1,0 +1,7 @@
+This post was very helpful to me in getting the "Knit PDF" button working in RStudio:
+http://rprogramming.net/create-html-or-pdf-files-with-r-knitr-miktex-and-pandoc/
+As far as I can tell, the process goes something like this. Someone correct me if I'm wrong.
+1. RMarkdown --> markdown (via knitr)
+I am using Windows 8.1, RStudio Version 0.98.1102, and R Version 3.1.2 on an Intel i5-4430 with 8.0 GB of RAM.
+I installed the basic MiKTeX (64-bit). I did not have to use the full installation. I opted for MiKTeX to prompt me when it needed to install new packages, so I could see exactly what was going on. I also selected "Install for all users on this computer" and I think this solved some errors I was getting about permissions and not being able to find certain files.
+The link for Pandoc from the above page didn't work for me, so I got Pandoc from here (https://github.com/jgm/pandoc/releases). You have to scroll all the way to the bottom and download the .msi Windows Installer file.

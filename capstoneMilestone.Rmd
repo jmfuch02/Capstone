@@ -1,0 +1,12 @@
+---
+title: "Capstone Milestone Report"
+author: "JF"
+date: "July, 2015"
+output: html_document
+---
+
+
+```{r, echo=FALSE}
+
+
+```
