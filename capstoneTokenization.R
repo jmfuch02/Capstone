@@ -1,5 +1,17 @@
+# Some material sourced from http://onepager.togaware.com/
+# Hands-On Data Science with R - Text Mining
+# Graham.Williams@togaware.com
+# 5th November 2014
+
 setwd("~/r_wdir/2015-07_capstone/Capstone")
 library(tm)
+library(SnowballC)
+library(wordcloud)
+library(qdap)
+library(magrittr) # for piping %>%
+library(ggplot2)
+library(stringr)
+library(dplyr)
 
 # Create the corpus
 dirName <- file.path(".", "samples")
@@ -15,24 +27,13 @@ docs <- Corpus(DirSource(dirName))
 #         gsub(pattern, " ", x))
 # docs <- tm_map(docs, toSpace, "/|@|\\|$|%|#|&")
 
-# Convert to lowercase
-docs <- tm_map(docs, content_transformer(tolower))
-
-# Remove numbers
-docs <- tm_map(docs, removeNumbers)
-
-# Remove punctuation
-docs <- tm_map(docs, removePunctuation)
-
-# Remove stop words
-docs <- tm_map(docs, removeWords, stopwords("english"))
-
-# Remove extra white space
-docs <- tm_map(docs, stripWhitespace)
-
-# Stem words
-library(SnowballC)
-docs <- tm_map(docs, stemDocument)
+# Do some transforms here
+docs <- tm_map(docs, content_transformer(tolower))          # Convert to lowercase
+docs <- tm_map(docs, removeNumbers)                         # Remove numbers
+docs <- tm_map(docs, removePunctuation)                     # Remove punctuation
+docs <- tm_map(docs, removeWords, stopwords("english"))     # Remove stop words
+docs <- tm_map(docs, stripWhitespace)                       # Remove extra white space
+docs <- tm_map(docs, stemDocument)                          # Stem words
 
 # View the files now
 docs[1][[1]][[1]][1]
@@ -69,7 +70,40 @@ freq[head(ord, 15)]
 freq[tail(ord, 15)]
 
 # Make a word cloud
-library(wordcloud)
 set.seed(123)
 wordcloud(names(freq), freq, min.freq = 10000,
           colors = brewer.pal(6, "Dark2"), scale = c(3, 0.1))
+
+# Do some quantitative analysis
+#words <- colnames(as.matrix(dtm))[nchar(colnames(as.matrix(dtm))) < 20]
+words <- dtm %>%
+    as.matrix %>%
+    colnames %>%
+    (function(x) x[nchar(x) < 20])
+
+summary(nchar(words))
+dist_tab(nchar(words))
+
+# Create a histrogram of the word lengths
+data.frame(nletters=nchar(words)) %>%
+    ggplot(aes(x=nletters)) +
+    geom_histogram(binwidth=1) +
+    geom_vline(xintercept=mean(nchar(words)),
+               colour="green", size=1, alpha=.5) +
+    labs(x="Number of Letters", y="Number of Words")
+
+# Show most common letters
+words %>%
+    str_split("") %>%
+    sapply(function(x) x[-1]) %>%
+    unlist %>%
+    dist_tab %>%
+    mutate(Letter=factor(toupper(interval),
+                         levels=toupper(interval[order(freq)]))) %>%
+    ggplot(aes(Letter, weight=percent)) +
+    geom_bar() +
+    coord_flip() +
+    ylab("Proportion") +
+    scale_y_continuous(breaks=seq(0, 12, 2),
+                       label=function(x) paste0(x, "%"),
+                       expand=c(0,0), limits=c(0,12))
