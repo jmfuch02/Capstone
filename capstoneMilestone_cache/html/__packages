@@ -1,0 +1,15 @@
+base
+NLP
+tm
+SnowballC
+RColorBrewer
+wordcloud
+magrittr
+ggplot2
+stringr
+dplyr
+rJava
+qdapDictionaries
+qdapRegex
+qdapTools
+qdap

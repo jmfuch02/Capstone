@@ -7,6 +7,7 @@ setwd("~/r_wdir/2015-07_capstone/Capstone")
 library(tm)
 library(SnowballC)
 library(wordcloud)
+library(rJava)
 library(qdap)
 library(magrittr) # for piping %>%
 library(ggplot2)
