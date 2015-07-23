@@ -13,6 +13,7 @@ library(magrittr) # for piping %>%
 library(ggplot2)
 library(stringr)
 library(dplyr)
+library(RWeka)
 
 # Create the corpus
 dirName <- file.path(".", "samples")
@@ -85,7 +86,7 @@ words <- dtm %>%
 summary(nchar(words))
 dist_tab(nchar(words))
 
-# Create a histrogram of the word lengths
+# Create a histogram of the word lengths
 data.frame(nletters=nchar(words)) %>%
     ggplot(aes(x=nletters)) +
     geom_histogram(binwidth=1) +
@@ -108,3 +109,22 @@ words %>%
     scale_y_continuous(breaks=seq(0, 12, 2),
                        label=function(x) paste0(x, "%"),
                        expand=c(0,0), limits=c(0,12))
+
+# Look at frequencies of 2-grams and 3-grams
+BigramTokenizer <- function (x) {
+    NGramTokenizer(x, Weka_control(min = 2, max = 2))
+}
+
+TrigramTokenizer <- function (x) {
+    NGramTokenizer(x, Weka_control(min = 3, max = 3))
+}
+
+tdm2 <- TermDocumentMatrix(docs, control = list(tokenize = BigramTokenizer))
+inspect(tdm2[1000000:1000020,])
+
+tdm3 <- TermDocumentMatrix(docs, control = list(tokenize = TrigramTokenizer))
+inspect(tdm3[1000000:1000020,])
+
+findFreqTerms(tdm2, 5000)
+findFreqTerms(tdm3, 500)
+

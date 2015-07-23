@@ -7,17 +7,18 @@ output: html_document
 
 # Introduction
 
+This report documents the first steps in the Coursera JHU Data Science Capstone class: reading in the data, cleaning it, and performing some exploratory analysis on it. At the end of the report I have some questions for my colleagues on best ways to move forward.
+
 # Process
 
-First, I downloaded the three text files and wrote a sampling function, shown in the appendix, to make them smaller and more manageable. My function can take any percentage input. After some trial and error, I chose 10%, as this seemed to make the processing speed manageable.
+First, I downloaded the three text files and wrote a sampling function, shown in the appendix, to make them smaller and more manageable. My function can take any percentage input. After some trial and error, I chose 5%, as this seemed to make the processing speed manageable.
 
-```{r, echo=FALSE, eval=TRUE, warning=FALSE, error=FALSE, cache=TRUE, message=FALSE}
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, error=FALSE, message=FALSE}
 # Some material sourced from http://onepager.togaware.com/
 # Hands-On Data Science with R - Text Mining
 # Graham.Williams@togaware.com
 # 5th November 2014
 
-setwd("~/r_wdir/2015-07_capstone/Capstone")
 library(tm)
 library(SnowballC)
 library(wordcloud)
@@ -27,25 +28,38 @@ library(magrittr) # for piping %>%
 library(ggplot2)
 library(stringr)
 library(dplyr)
+library(RWeka)
 
 # Create the corpus
 dirName <- file.path(".", "samples")
 docs <- Corpus(DirSource(dirName))
-
 ```
 
-It was important here to keep the samples static so that I wouldn't have to recreate them every time.
+Once I had the samples, I converted all three into a Corpus (a collection of documents) using the `tm` library, and then I used the `tm_map` function to clean them. You can see the transformations done to the corpus below.
 
-Once I had the samples, I converted all three into a Corpus (a collection of documents) using the tm library, and then I used the 'tm_map' function to clean them. You can see the transformations done to the corpus below.
-
-```{r, echo=TRUE, eval=TRUE}
+```{r}
 docs <- tm_map(docs, content_transformer(tolower))          # Convert to lowercase
 docs <- tm_map(docs, removeNumbers)                         # Remove numbers
 docs <- tm_map(docs, removePunctuation)                     # Remove punctuation
-docs <- tm_map(docs, removeWords, stopwords("english"))     # Remove stop words
 docs <- tm_map(docs, stripWhitespace)                       # Remove extra white space
-docs <- tm_map(docs, stemDocument)                          # Stem words
+#docs <- tm_map(docs, removeWords, stopwords("english"))     # Remove stop words
+#docs <- tm_map(docs, stemDocument)                          # Stem words
 ```
+
+We can view some of the stats on our corpus.
+
+```{r}
+inspect(docs)
+```
+
+I'm not sure if I should be removing stopwords and stemming the corpus here. I create two other sets wherein each of these actions is performed. Any advice would be appreciated.
+
+```{r}
+docsNoStops <- tm_map(docs, removeWords, stopwords("english"))     # Remove stop words
+docsStemmed <- tm_map(docs, stemDocument)                          # Stem words
+```
+
+We can see the most common words here, for the corpus with stopwords included.
 
 ```{r, echo=FALSE, eval=TRUE, warning=FALSE, error=FALSE, cache=TRUE, message=FALSE}
 # Create the document term matrix
@@ -54,41 +68,58 @@ dtm <- DocumentTermMatrix(docs)
 # Look at 10 most frequent words
 freq <- colSums(as.matrix(dtm))
 ord <- order(freq)
-
-# Get rid of sparse terms
-dtms <- removeSparseTerms(dtm, 0.05)
+freq[tail(ord, 10)]
 ```
 
-The most frequently-appearing words can be seen in the cloud below.
+We can get rid of the some of the less-frequent terms by using `removeSparseTerms`
+
+```{r}
+# Get rid of sparse terms
+dtmSparse <- removeSparseTerms(dtm, 0.05)
+freqSparse <- colSums(as.matrix(dtmSparse))
+ordSparse <- order(freqSparse)
+```
+
+Here is a summary of the document-term matrix now. You can see that sparcity is low now.
+
+```{r}
+dtmSparse
+```
+
+The most frequently-appearing words are shown below in the word cloud below.
 
 ```{r, echo=FALSE, eval=TRUE, warning=FALSE, error=FALSE, cache=TRUE, message=FALSE}
 # Make a word cloud
 set.seed(123)
-wordcloud(names(freq), freq, min.freq = 10000,
-          colors = brewer.pal(6, "Dark2"), scale = c(3, 0.1))
+wordcloud(names(freqSparse), freqSparse, min.freq = 10000,
+          colors = brewer.pal(6, "Dark2"), scale = c(5, 1))
 
 ```
 
-```{r, echo=FALSE, eval=TRUE, warning=FALSE, error=FALSE, cache=TRUE, message=FALSE}
+We can look at how long a typical word in the corpus is, just as a sanity check. This looks reasonable.
 
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, error=FALSE, cache=TRUE, message=FALSE}
 # Do some quantitative analysis
 #words <- colnames(as.matrix(dtm))[nchar(colnames(as.matrix(dtm))) < 20]
-words <- dtm %>%
+words <- dtmSparse %>%
     as.matrix %>%
     colnames %>%
     (function(x) x[nchar(x) < 20])
 
 summary(nchar(words))
-dist_tab(nchar(words))
 
-# Create a histrogram of the word lengths
+# Create a histogram of the word lengths
 data.frame(nletters=nchar(words)) %>%
     ggplot(aes(x=nletters)) +
     geom_histogram(binwidth=1) +
     geom_vline(xintercept=mean(nchar(words)),
                colour="green", size=1, alpha=.5) +
     labs(x="Number of Letters", y="Number of Words")
+```
 
+Here we can see that there are a few nonsense letters and symbols in the corpus. I found that this was even worse before I switched to reading in the texts via binary mode.
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, error=FALSE, cache=TRUE, message=FALSE}
 # Show most common letters
 words %>%
     str_split("") %>%
@@ -107,15 +138,69 @@ words %>%
 
 ```
 
+Next I found the 2-grams and 3-grams in the corpus.
 
-```{r}
-freq[tail(ord, 10)]
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, error=FALSE, cache=TRUE, message=FALSE}
+# Look at frequencies of 2-grams and 3-grams
+BigramTokenizer <- function (x) {
+    NGramTokenizer(x, Weka_control(min = 2, max = 2))
+}
+
+TrigramTokenizer <- function (x) {
+    NGramTokenizer(x, Weka_control(min = 3, max = 3))
+}
+
+tdm2 <- TermDocumentMatrix(docs, control = list(tokenize = BigramTokenizer))
+tdm3 <- TermDocumentMatrix(docs, control = list(tokenize = TrigramTokenizer))
 ```
 
+You can see a few of the most frequent 2-grams
 
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, error=FALSE, cache=TRUE, message=FALSE}
+term2Freq <- rowSums(as.matrix(tdm2))
+ord2Terms <- order(term2Freq)
+term2Freq[tail(ord2Terms, 10)]
+```
+
+Here are some of the most frequent 3-grams.
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, error=FALSE, cache=TRUE, message=FALSE}
+term3Freq <- rowSums(as.matrix(tdm3))
+ord3Terms <- order(term3Freq)
+term3Freq[tail(ord3Terms, 10)]
+```
+
+Just for good measure, here are 2 word clouds showing the 2-grams and 3-grams.
+
+```{r, echo=FALSE, eval=TRUE, warning=FALSE, error=FALSE, message=FALSE}
+# Make a word cloud
+set.seed(123)
+wordcloud(names(term2Freq), term2Freq, min.freq = 1000, max.words = 100,
+          colors = brewer.pal(6, "Dark2"), scale = c(5, 1))
+wordcloud(names(term3Freq), term3Freq, min.freq = 500, max.words = 100,
+          colors = brewer.pal(6, "Dark2"), scale = c(3, 1))
+```
+
+# Conclusions & Questions
+
+From here, I will need to create my n-gram model and prediction algorithm
+I would like some feedback on the following:
+
+- Is 5% a good sample to take?
+
+- Should I remove stopwords and stem the corpus before creating a model?
+
+- What is the best way to remove profanity? I have not done that yet.
+
+- What is the best way to remove the strange symbols that show up in the corpus?
+
+-----
 # Code Appendix
 
 ```{r, echo=TRUE, eval=FALSE}
+
+# This function takes a file and samples some percentage of lines from it
+# It creates a new file with the sampled lines only
 
 sampleLines <- function(oldFileName, percentage, newFileName){
 
@@ -144,6 +229,34 @@ sampleLines <- function(oldFileName, percentage, newFileName){
     close(con)
     print(numberOfLines)
 }
+
+# Now apply this function to the English database
+
+set.seed(12345)
+sampleLines(oldFileName = "Coursera-SwiftKey/final/en_US/en_US.blogs.txt",
+            percentage = 0.05,
+            newFileName = "sample_en_US.blogs.txt")
+
+sampleLines(oldFileName = "Coursera-SwiftKey/final/en_US/en_US.twitter.txt",
+            percentage = 0.05,
+            newFileName = "sample_en_US.twitter.txt")
+
+sampleLines(oldFileName = "Coursera-SwiftKey/final/en_US/en_US.news.txt",
+            percentage = 0.05,
+            newFileName = "sample_en_US.news.txt")
+
+
+# Look at frequencies of 2-grams and 3-grams
+BigramTokenizer <- function (x) {
+    NGramTokenizer(x, Weka_control(min = 2, max = 2))
+}
+
+TrigramTokenizer <- function (x) {
+    NGramTokenizer(x, Weka_control(min = 3, max = 3))
+}
+
+tdm2 <- TermDocumentMatrix(docs, control = list(tokenize = BigramTokenizer))
+tdm3 <- TermDocumentMatrix(docs, control = list(tokenize = TrigramTokenizer))
 
 ```
 
