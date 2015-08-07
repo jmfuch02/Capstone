@@ -32,8 +32,6 @@ docs <- tm_map(docs, content_transformer(tolower))          # Convert to lowerca
 docs <- tm_map(docs, removeNumbers)                         # Remove numbers
 docs <- tm_map(docs, removePunctuation)                     # Remove punctuation
 docs <- tm_map(docs, stripWhitespace)                       # Remove extra white space
-#docs <- tm_map(docs, removeWords, stopwords("english"))     # Remove stop words
-#docs <- tm_map(docs, stemDocument)                          # Stem words
 
 # View the files now
 docs[1][[1]][[1]][1]
@@ -47,35 +45,15 @@ dtm <- DocumentTermMatrix(docs)
 dtms <- removeSparseTerms(dtm, 0.05)
 
 # Look at 10 least and most frequent words
-freq <- colSums(as.matrix(dtm))
+freq <- colSums(as.matrix(dtms))
 ord <- order(freq)
 freq[head(ord, 10)]
 freq[tail(ord, 10)]
-
-# Look at frequencies of frequencies
-head(table(freq), 15)
-tail(table(freq), 15)
 
 # Make a word cloud
 set.seed(123)
 wordcloud(names(freq), freq, min.freq = 10000,
           colors = brewer.pal(6, "Dark2"), scale = c(3, 0.1))
-
-# Show most common letters
-words %>%
-    str_split("") %>%
-    sapply(function(x) x[-1]) %>%
-    unlist %>%
-    dist_tab %>%
-    mutate(Letter=factor(toupper(interval),
-                         levels=toupper(interval[order(freq)]))) %>%
-    ggplot(aes(Letter, weight=percent)) +
-    geom_bar() +
-    coord_flip() +
-    ylab("Proportion") +
-    scale_y_continuous(breaks=seq(0, 12, 2),
-                       label=function(x) paste0(x, "%"),
-                       expand=c(0,0), limits=c(0,12))
 
 # Look at frequencies of 2-grams and 3-grams
 BigramTokenizer <- function (x) {
@@ -86,28 +64,94 @@ TrigramTokenizer <- function (x) {
     NGramTokenizer(x, Weka_control(min = 3, max = 3))
 }
 
+FourgramTokenizer <- function (x) {
+    NGramTokenizer(x, Weka_control(min = 4, max = 4))
+}
+
+# Create term-document matrix
+tdm1 <- TermDocumentMatrix(docs)
+tdm1s <- removeSparseTerms(tdm1, 0.4)
+
+# Single word frequencies
+term1Freq <- rowSums(as.matrix(tdm1s))
+ord1Terms <- order(term1Freq)
+term1Freq[tail(ord1Terms,10)]
+
+
 # Create 2-gram tdm and remove sparse terms
 tdm2 <- TermDocumentMatrix(docs, control = list(tokenize = BigramTokenizer))
 tdm2s <- removeSparseTerms(tdm2, 0.4)
-
-# Create 3-gram tdm and remove sparse terms
-tdm3 <- TermDocumentMatrix(docs, control = list(tokenize = TrigramTokenizer))
-tdm3s <- removeSparseTerms(tdm3, 0.4)
 
 # Here are some of the most frequent 2-grams.
 term2Freq <- rowSums(as.matrix(tdm2s))
 ord2Terms <- order(term2Freq)
 term2Freq[tail(ord2Terms, 10)]
-term2Freq[head(ord2Terms, 10)]
+
+
+# Create 3-gram tdm and remove sparse terms
+tdm3 <- TermDocumentMatrix(docs, control = list(tokenize = TrigramTokenizer))
+tdm3s <- removeSparseTerms(tdm3, 0.4)
 
 # Here are some of the most frequent 3-grams.
 term3Freq <- rowSums(as.matrix(tdm3s))
 ord3Terms <- order(term3Freq)
 term3Freq[tail(ord3Terms, 10)]
-term3Freq[head(ord3Terms, 10)]
 
+
+# Create 4-gram tdm and remove sparse terms
+tdm4 <- TermDocumentMatrix(docs, control = list(tokenize = FourgramTokenizer))
+tdm4s <- removeSparseTerms(tdm4, 0.4)
+
+# Here are some of the most frequent 4-grams.
+term4Freq <- rowSums(as.matrix(tdm4s))
+ord4Terms <- order(term4Freq)
+term4Freq[tail(ord4Terms, 10)]
+
+
+# EXPLORE: Find terms in the tdm
 inspect(tdm3s["one of the",])
-term3Freq["one of the"]/length(term3Freq)
+term3Freq["one of the"]
+results <- term3Freq[grep("one of ", names(term3Freq), fixed = TRUE)]
+ordResults <- order(-results)
+results[head(ordResults, 5)]
+
+results <- term2Freq[grep("turn ", names(term2Freq), fixed = TRUE)]
+results <- results[substring(names(results), 1, nchar("turn")) == "turn"]
+ordResults <- order(-results)
+results[head(ordResults, 5)]
+
+# FUNCTION: Take in one word, return table showing top 5 next words and counts
+getNextWord <- function(word) {
+    
+    results <- term2Freq[grep(paste0(word, " "), names(term2Freq), fixed = TRUE)]
+    results <- results[substring(names(results), 1, nchar(word)) == word]
+    ordResults <- order(-results)
+    results[head(ordResults, 5)]
+    
+}
+
+getNextWord("the")
+getNextWord("and")
+getNextWord("i")
+getNextWord("you")
+getNextWord("ok")
+getNextWord("want")
+getNextWord("camera")
+getNextWord("turned")
+getNextWord("turn")
+getNextWord("jesus")
+getNextWord("library")
+getNextWord("sunshine")
+getNextWord("lightning")
+getNextWord("bazooka")
+getNextWord("skeleton")
+
+
+# TODO:
+# Expand the function above to include any string of length up to 3 (use 4-gram)
+# Show just next word, not the whole string (use substring?)
+# Figure out how to handle non-existant words (e.g. bazooka, skeleton)
+
 
 
 
