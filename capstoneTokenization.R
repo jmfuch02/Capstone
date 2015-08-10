@@ -15,6 +15,8 @@ library(stringr)
 library(dplyr)
 library(RWeka)
 
+# The set of samples has already been created using a sampling function
+
 # Create the corpus
 dirName <- file.path(".", "samples")
 docs <- Corpus(DirSource(dirName))
@@ -77,7 +79,6 @@ term1Freq <- rowSums(as.matrix(tdm1s))
 ord1Terms <- order(term1Freq)
 term1Freq[tail(ord1Terms,10)]
 
-
 # Create 2-gram tdm and remove sparse terms
 tdm2 <- TermDocumentMatrix(docs, control = list(tokenize = BigramTokenizer))
 tdm2s <- removeSparseTerms(tdm2, 0.4)
@@ -86,7 +87,6 @@ tdm2s <- removeSparseTerms(tdm2, 0.4)
 term2Freq <- rowSums(as.matrix(tdm2s))
 ord2Terms <- order(term2Freq)
 term2Freq[tail(ord2Terms, 10)]
-
 
 # Create 3-gram tdm and remove sparse terms
 tdm3 <- TermDocumentMatrix(docs, control = list(tokenize = TrigramTokenizer))
@@ -121,7 +121,7 @@ ordResults <- order(-results)
 results[head(ordResults, 5)]
 
 # FUNCTION: Take in one word, return table showing top 5 next words and counts
-getNextWord <- function(word) {
+getNextWordBigram <- function(word) {
     
     results <- term2Freq[grep(paste0(word, " "), names(term2Freq), fixed = TRUE)]
     results <- results[substring(names(results), 1, nchar(word)) == word]
@@ -130,29 +130,82 @@ getNextWord <- function(word) {
     
 }
 
-getNextWord("the")
-getNextWord("and")
-getNextWord("i")
-getNextWord("you")
-getNextWord("ok")
-getNextWord("want")
-getNextWord("camera")
-getNextWord("turned")
-getNextWord("turn")
-getNextWord("jesus")
-getNextWord("library")
-getNextWord("sunshine")
-getNextWord("lightning")
-getNextWord("bazooka")
-getNextWord("skeleton")
+# Examples here show that some words have never been seen in the corpus,
+# like "bazooka" and "skeleton"
+getNextWordBigram("the")
+getNextWordBigram("and")
+getNextWordBigram("turned")
+getNextWordBigram("turn")
+getNextWordBigram("sunshine")
+getNextWordBigram("bazooka") # this word is in the corpus twice. Problem here.
+getNextWordBigram("skeleton")
+getNextWordBigram("overflow")
+
+# Same thing for tri-grams
+getNextWordTrigram <- function(w1, w2) {
+    
+    results <- term3Freq[grep(paste0(w1, " ", w2, " "), names(term3Freq), fixed = TRUE)]
+    results <- results[substring(names(results), 1, nchar(w1)) == w1]
+    ordResults <- order(-results)
+    results[head(ordResults, 5)]
+    
+}
+
+getNextWordTrigram("the", "first")
+getNextWordTrigram("and", "it")
+getNextWordTrigram("turned", "around")
+getNextWordTrigram("turn", "into")
+getNextWordTrigram("sunshine", "and")
+getNextWordTrigram("sunshine")
+getNextWordTrigram("the", "[:alnum:]")
+
+getMLE <- function(w1, w2) {
+    num <- term2Freq[names(term2Freq) == paste(w1, w2)]
+    den <- term1Freq[names(term1Freq) == w1]
+    prob <- num / den
+    return(prob)
+}
+
+getMLE("the", "first")
+getMLE("the", "same")
+getMLE("the", "best")
+getMLE("the", "sunshine")
+
+getMLE("the", names(term1Freq)) # throws an error; use lapply?
+
+
+getLaplace <- function(w1, w2) {
+    num <- term2Freq[names(term2Freq) == paste(w1, w2)]
+    if (length(num) == 0) { num = 1 }
+    den <- term1Freq[names(term1Freq) == w1] + tdm1s$nrow
+    prob <- num / den
+    return(prob)
+}
+
+getLaplace("the", "first")
+getLaplace("the", "bazooka")
+getLaplace("bazooka", "Was")
+getLaplace("bazooka", "skeleton")
 
 
 # TODO:
-# Expand the function above to include any string of length up to 3 (use 4-gram)
-# Show just next word, not the whole string (use substring?)
-# Figure out how to handle non-existant words (e.g. bazooka, skeleton)
+# Compute probabilities (MLE) for bigrams (DONE!), trigrams, 4-grams
+# Figure out how to calculate MLE for all words in vocab (e.g. term1Freq)
+# Do Laplace smoothing for trigrams and 4-grams
+# Try Lidstone and JP (ELE) on pg. 204
+# Investigate Good-Turing and Kneser-Ney (may not be necessary)
 
 
+
+# Function gets the last n words of string of text
+# Very crude, will throw error if n > words in string
+getLastWords <- function(textString, n) {
+    s <- strsplit(textString, " ")
+    s[[1]][(length(s[[1]]) - n + 1):(length(s[[1]]))]
+}
+
+# Test it
+getLastWords("The quick brown fox jumps", 3)
 
 
 
