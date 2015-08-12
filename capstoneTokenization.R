@@ -126,7 +126,7 @@ getNextWordBigram <- function(word) {
     results <- term2Freq[grep(paste0(word, " "), names(term2Freq), fixed = TRUE)]
     results <- results[substring(names(results), 1, nchar(word)) == word]
     ordResults <- order(-results)
-    results[head(ordResults, 5)]
+    return(names(results[head(ordResults, 5)]))
     
 }
 
@@ -147,7 +147,7 @@ getNextWordTrigram <- function(w1, w2) {
     results <- term3Freq[grep(paste0(w1, " ", w2, " "), names(term3Freq), fixed = TRUE)]
     results <- results[substring(names(results), 1, nchar(w1)) == w1]
     ordResults <- order(-results)
-    results[head(ordResults, 5)]
+    return(names(results[head(ordResults, 5)]))
     
 }
 
@@ -158,6 +158,19 @@ getNextWordTrigram("turn", "into")
 getNextWordTrigram("sunshine", "and")
 getNextWordTrigram("sunshine")
 getNextWordTrigram("the", "[:alnum:]")
+
+# Now do 4-grams
+getNextWordFourgram <- function(w1, w2, w3) {
+    
+    results <- term4Freq[grep(paste0(w1, " ", w2, " ", w3, " "), names(term4Freq), fixed = TRUE)]
+    results <- results[substring(names(results), 1, nchar(w1)) == w1]
+    ordResults <- order(-results)
+    return(names(results[head(ordResults, 1)]))
+    
+}
+
+getNextWordFourgram("the", "first", "time")
+getNextWordFourgram("and", "it", "was")
 
 getMLE <- function(w1, w2) {
     num <- term2Freq[names(term2Freq) == paste(w1, w2)]
@@ -200,12 +213,92 @@ getLaplace("bazooka", "skeleton")
 # Function gets the last n words of string of text
 # Very crude, will throw error if n > words in string
 getLastWords <- function(textString, n) {
+    
     s <- strsplit(textString, " ")
-    s[[1]][(length(s[[1]]) - n + 1):(length(s[[1]]))]
+    if (length(s) != 0) {
+        if (length(s[[1]]) < n) { n <- length(s[[1]]) }
+        r <- s[[1]][(length(s[[1]]) - n + 1):(length(s[[1]]))]
+    } else { r <- character(0) }
+    return(r)
 }
 
 # Test it
 getLastWords("The quick brown fox jumps", 3)
+getLastWords("fox jumps", 3)
+getLastWords("", 3)
+getLastWords(character(0), 3)
+
+textString <- character(0)
+n <- 3
+
+
+# Now combine into a function
+# Take in a string, look at last 3 words first
+# Back off to 2 words, 1 word...
+# Return next word
+
+textString <- "bottom to the"
+
+predictNextWord <- function (textString) {
+    
+    w <- rev(getLastWords(textString, 3))
+    if (length(w) == 3) {
+        lw <- getLastWords(getNextWordFourgram(w[3], w[2], w[1]), 1)
+    }
+    if (length(w) == 2 | length(lw) == 0) {
+        lw <- getLastWords(getNextWordTrigram(w[2], w[1]), 1)
+    }
+    if (length(w) == 1 | (length(lw) == 0)) {
+        lw <- getLastWords(getNextWordBigram(w[1]), 1)   
+    }
+    if (length(lw) == 0) {
+        lw <- names(term1Freq[tail(ord1Terms,1)])
+    }
+    return(lw)
+    
+}
+
+
+# Quiz 2
+predictNextWord("and a case of")
+predictNextWord("It would mean the")
+predictNextWord("Hey sunshine, can you follow me and make me the")
+predictNextWord("Offense still struggling but the")
+predictNextWord("Go on a romantic date at the")
+predictNextWord("garage I'll dust them off and be on my")
+predictNextWord("Love that film and haven't seen it in quite some")
+predictNextWord("push his long wet hair out of his eyes with his little")
+predictNextWord("and keep the faith during the")
+predictNextWord("If this isn't the cutest thing you've ever seen, then you must be")
+
+# Quiz 3
+predictNextWord("I'll be there for you, I'd live and I'd")
+predictNextWord("and he started telling me about his")
+predictNextWord("I'd give anything to see arctic monkeys this")
+predictNextWord("Talking to your mom has the same effect as a hug and helps reduce your")
+predictNextWord("but you hadn't time to take a")
+predictNextWord("a presentation of evidence, and a jury to settle the")
+predictNextWord("I can't even hold an uneven number of bags of groceries in each")
+predictNextWord("Every inch of you is perfect from the bottom to the")
+predictNextWord("filled with imagination and bruises from playing")
+predictNextWord("I like how the same people are in almost all of Adam Sandler's")
+
+
+# Just for fun, generate some text
+generateText <- function (seed, n) {
+    
+    i <- 0
+    w <- seed
+    while (i < n) {
+        w <- paste(w, predictNextWord(w))
+        i <- i + 1
+    }
+    return(w)
+}
+
+generateText("Luke I am", 50)
+generateText("The experiment was", 50)
+generateText("My wife", 100)
 
 
 
