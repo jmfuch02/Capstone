@@ -37,15 +37,15 @@ sampleLines <- function(oldFileName, percentage, newFileName){
 
 set.seed(12345)
 sampleLines(oldFileName = "Coursera-SwiftKey/final/en_US/en_US.blogs.txt",
-            percentage = 0.05,
+            percentage = 0.20,
             newFileName = "sample_en_US.blogs.txt")
 
 sampleLines(oldFileName = "Coursera-SwiftKey/final/en_US/en_US.twitter.txt",
-            percentage = 0.05,
+            percentage = 0.20,
             newFileName = "sample_en_US.twitter.txt")
 
 sampleLines(oldFileName = "Coursera-SwiftKey/final/en_US/en_US.news.txt",
-            percentage = 0.05,
+            percentage = 0.20,
             newFileName = "sample_en_US.news.txt")
 
 

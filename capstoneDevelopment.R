@@ -18,8 +18,7 @@ library(RWeka)
 # The set of samples has already been created using a sampling function
 
 # Create the corpus
-dirName <- file.path(".", "samples")
-docs <- Corpus(DirSource(dirName))
+docs <- Corpus(DirSource(file.path(".", "samples20")))
 
 # Do some cleaning
 
@@ -30,10 +29,10 @@ docs <- Corpus(DirSource(dirName))
 # docs <- tm_map(docs, toSpace, "/|@|\\|$|%|#|&")
 
 # Do some transforms here
-docs <- tm_map(docs, content_transformer(tolower))          # Convert to lowercase
-docs <- tm_map(docs, removeNumbers)                         # Remove numbers
-docs <- tm_map(docs, removePunctuation)                     # Remove punctuation
-docs <- tm_map(docs, stripWhitespace)                       # Remove extra white space
+docs <- tm_map(docs, content_transformer(tolower))  # Convert to lowercase
+docs <- tm_map(docs, removeNumbers)                 # Remove numbers
+docs <- tm_map(docs, removePunctuation)             # Remove punctuation
+docs <- tm_map(docs, stripWhitespace)               # Remove extra white space
 
 # View the files now
 docs[1][[1]][[1]][1]
@@ -96,7 +95,6 @@ tdm3s <- removeSparseTerms(tdm3, 0.4)
 term3Freq <- rowSums(as.matrix(tdm3s))
 ord3Terms <- order(term3Freq)
 term3Freq[tail(ord3Terms, 10)]
-
 
 # Create 4-gram tdm and remove sparse terms
 tdm4 <- TermDocumentMatrix(docs, control = list(tokenize = FourgramTokenizer))
@@ -165,7 +163,7 @@ getNextWordFourgram <- function(w1, w2, w3) {
     results <- term4Freq[grep(paste0(w1, " ", w2, " ", w3, " "), names(term4Freq), fixed = TRUE)]
     results <- results[substring(names(results), 1, nchar(w1)) == w1]
     ordResults <- order(-results)
-    return(names(results[head(ordResults, 1)]))
+    return(names(results[head(ordResults, 5)]))
     
 }
 
@@ -183,9 +181,25 @@ getMLE("the", "first")
 getMLE("the", "same")
 getMLE("the", "best")
 getMLE("the", "sunshine")
+getMLE("bazooka", "aardvark")
 
-getMLE("the", names(term1Freq)) # throws an error; use lapply?
+summary(term2Freq)
+bigramCounts <- data.frame(term2Freq)
+head(strsplit(names(term2Freq), " "))
 
+w1 <- strsplit(names(term2Freq["a bag"]), " ")[[1]][1]
+w2 <- strsplit(names(term2Freq["a bag"]), " ")[[1]][2]
+
+getMLE(w1, w2)
+term2Freq[names(term2Freq) == paste(w1, w2)]
+term1Freq[names(term1Freq) == "a"]
+term1Freq["a"]
+
+all(term1Freq > 0)
+
+head(term2Freq, 50)
+all(term2Freq > 0)
+head(term2Freq[which(term2Freq == 0)])
 
 getLaplace <- function(w1, w2) {
     num <- term2Freq[names(term2Freq) == paste(w1, w2)]
@@ -198,8 +212,11 @@ getLaplace <- function(w1, w2) {
 getLaplace("the", "first")
 getLaplace("the", "bazooka")
 getLaplace("bazooka", "Was")
-getLaplace("bazooka", "skeleton")
+getLaplace("bazooka", "aardvark")
+getLaplace("sandler", "bazooka")
 
+term1Freq[names(term1Freq) == "bazooka"]
+term1Freq[names(term1Freq) == "sandler"]
 
 # TODO:
 # Compute probabilities (MLE) for bigrams (DONE!), trigrams, 4-grams
@@ -242,6 +259,8 @@ textString <- "bottom to the"
 predictNextWord <- function (textString) {
     
     w <- rev(getLastWords(textString, 3))
+    lw <- character(0)
+    
     if (length(w) == 3) {
         lw <- getLastWords(getNextWordFourgram(w[3], w[2], w[1]), 1)
     }
