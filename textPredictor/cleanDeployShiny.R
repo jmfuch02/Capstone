@@ -3,7 +3,9 @@
 # FUNCTION: Take in one word, return table showing top 5 next words and counts
 getNextWordBigram <- function(word) {
     
-    results <- term2Freq[grep(paste0(word, " "), names(term2Freq), fixed = TRUE)]
+    word <- tolower(word)
+    results <- term2Freq[grep(paste0(word, " "), names(term2Freq),
+                              fixed = TRUE)]
     results <- results[substring(names(results), 1, nchar(word)) == word]
     ordResults <- order(-results)
     return(names(results[head(ordResults, 5)]))
@@ -13,7 +15,10 @@ getNextWordBigram <- function(word) {
 # Same thing for tri-grams
 getNextWordTrigram <- function(w1, w2) {
     
-    results <- term3Freq[grep(paste0(w1, " ", w2, " "), names(term3Freq), fixed = TRUE)]
+    w1 <- tolower(w1)
+    w2 <- tolower(w2)
+    results <- term3Freq[grep(paste0(w1, " ", w2, " "), names(term3Freq),
+                              fixed = TRUE)]
     results <- results[substring(names(results), 1, nchar(w1)) == w1]
     ordResults <- order(-results)
     return(names(results[head(ordResults, 5)]))
@@ -23,7 +28,11 @@ getNextWordTrigram <- function(w1, w2) {
 # Now do 4-grams
 getNextWordFourgram <- function(w1, w2, w3) {
     
-    results <- term4Freq[grep(paste0(w1, " ", w2, " ", w3, " "), names(term4Freq), fixed = TRUE)]
+    w1 <- tolower(w1)
+    w2 <- tolower(w2)
+    w3 <- tolower(w3)
+    results <- term4Freq[grep(paste0(w1, " ", w2, " ", w3, " "),
+                              names(term4Freq), fixed = TRUE)]
     results <- results[substring(names(results), 1, nchar(w1)) == w1]
     ordResults <- order(-results)
     return(names(results[head(ordResults, 5)]))

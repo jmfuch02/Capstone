@@ -121,7 +121,9 @@ results[head(ordResults, 5)]
 # FUNCTION: Take in one word, return table showing top 5 next words and counts
 getNextWordBigram <- function(word) {
     
-    results <- term2Freq[grep(paste0(word, " "), names(term2Freq), fixed = TRUE)]
+    word <- tolower(word)
+    results <- term2Freq[grep(paste0(word, " "), names(term2Freq),
+                              fixed = TRUE)]
     results <- results[substring(names(results), 1, nchar(word)) == word]
     ordResults <- order(-results)
     return(names(results[head(ordResults, 5)]))
@@ -137,12 +139,17 @@ getNextWordBigram("turn")
 getNextWordBigram("sunshine")
 getNextWordBigram("bazooka") # this word is in the corpus twice. Problem here.
 getNextWordBigram("skeleton")
+getNextWordBigram("Skeleton")
 getNextWordBigram("overflow")
+
 
 # Same thing for tri-grams
 getNextWordTrigram <- function(w1, w2) {
     
-    results <- term3Freq[grep(paste0(w1, " ", w2, " "), names(term3Freq), fixed = TRUE)]
+    w1 <- tolower(w1)
+    w2 <- tolower(w2)
+    results <- term3Freq[grep(paste0(w1, " ", w2, " "),
+                              names(term3Freq), fixed = TRUE)]
     results <- results[substring(names(results), 1, nchar(w1)) == w1]
     ordResults <- order(-results)
     return(names(results[head(ordResults, 5)]))
@@ -150,6 +157,7 @@ getNextWordTrigram <- function(w1, w2) {
 }
 
 getNextWordTrigram("the", "first")
+getNextWordTrigram("the", "fIRst")
 getNextWordTrigram("and", "it")
 getNextWordTrigram("turned", "around")
 getNextWordTrigram("turn", "into")
@@ -160,7 +168,11 @@ getNextWordTrigram("the", "[:alnum:]")
 # Now do 4-grams
 getNextWordFourgram <- function(w1, w2, w3) {
     
-    results <- term4Freq[grep(paste0(w1, " ", w2, " ", w3, " "), names(term4Freq), fixed = TRUE)]
+    w1 <- tolower(w1)
+    w2 <- tolower(w2)
+    w3 <- tolower(w3)
+    results <- term4Freq[grep(paste0(w1, " ", w2, " ", w3, " "),
+                              names(term4Freq), fixed = TRUE)]
     results <- results[substring(names(results), 1, nchar(w1)) == w1]
     ordResults <- order(-results)
     return(names(results[head(ordResults, 5)]))
@@ -168,6 +180,7 @@ getNextWordFourgram <- function(w1, w2, w3) {
 }
 
 getNextWordFourgram("the", "first", "time")
+getNextWordFourgram("thE", "fIRst", "Time")
 getNextWordFourgram("and", "it", "was")
 
 getMLE <- function(w1, w2) {
@@ -315,9 +328,8 @@ generateText <- function (seed, n) {
     return(w)
 }
 
-generateText("Luke I am", 50)
 generateText("The experiment was", 50)
-generateText("My wife", 100)
+generateText("My wife", 50)
 
 
 

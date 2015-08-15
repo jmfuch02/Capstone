@@ -9,7 +9,11 @@ shinyServer(function(input, output) {
     
     output$predictedWord <- renderText({
         
-        predictNextWord(input$textString)
+        if (input$textString == "") {
+            ""
+        } else {
+            predictNextWord(input$textString)
+        }
         
     })
     

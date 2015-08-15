@@ -1,15 +1,16 @@
 # Create a clean RData file for Shiny deploy
 
 # First remove everything
-rm(list = ls())
+#rm(list = ls())
 
 # Load libraries
 library(tm)
 library(SnowballC)
+library(rJava)
 library(RWeka)
 
 # Create the corpus
-docs <- Corpus(DirSource(file.path(".", "samples")))
+docs <- Corpus(DirSource(file.path(".", "samples10")))
 
 # Do some transforms here
 docs <- tm_map(docs, content_transformer(tolower))  # Convert to lowercase

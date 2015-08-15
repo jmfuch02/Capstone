@@ -1,8 +1,8 @@
 name: textPredictor
 account: jmfuch02
 server: shinyapps.io
-bundleId: 239297
+bundleId: 240667
 url: https://jmfuch02.shinyapps.io/textPredictor
-when: 1439513397.1213
+when: 1439667800.67097
 asMultiple: FALSE
 asStatic: FALSE
